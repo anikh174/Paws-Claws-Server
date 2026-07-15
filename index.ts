@@ -94,6 +94,19 @@ app.post("/adoptions", async (req: Request, res: Response) => {
   }
 });
 
+app.get("/adoptions", async (req: Request, res: Response) => {
+  try {
+    const database = await getDb();
+    // যদি নির্দিষ্ট ইউজারের ইমেইল ফিল্টার করতে হয় তবে:
+    // const { email } = req.query;
+    // const query = email ? { applicantEmail: email } : {};
+    const result = await database.collection("adoptions").find({}).toArray();
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch" });
+  }
+});
+
 app.delete("/pets/:id", async (req: Request, res: Response) => {
   try {
     const database = await getDb();
