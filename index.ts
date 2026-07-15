@@ -11,7 +11,7 @@ const port = process.env.PORT || 5000;
 // CORS configuration
 app.use(
   corsMiddleware({
-    origin: ["http://localhost:3000", "https://doc-appoint-vert.vercel.app"],
+    origin: ["http://localhost:3000", "https://paws-claws-beta.vercel.app"],
     credentials: true,
   })
 );
