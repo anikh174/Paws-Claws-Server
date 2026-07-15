@@ -267,42 +267,29 @@
 import express, { Request, Response } from "express";
 import dotenv from "dotenv";
 import corsMiddleware from "cors";
-import { MongoClient, ServerApiVersion, ObjectId, Db } from "mongodb";
+import { MongoClient, ServerApiVersion, ObjectId } from "mongodb";
 
 dotenv.config();
 
 const app = express();
 
-// Middleware
-app.use(
-  corsMiddleware({
-    origin: ["http://localhost:3000", "https://paws-claws-beta.vercel.app"],
-    credentials: true,
-  })
-);
+app.use(corsMiddleware({
+  origin: ["http://localhost:3000", "https://paws-claws-beta.vercel.app"],
+  credentials: true,
+}));
 app.use(express.json());
 
-// MongoDB connection
 const uri = process.env.MONGODB_URI as string;
-if (!uri) {
-  throw new Error("MONGODB_URI is not defined in .env file");
-}
-
 const client = new MongoClient(uri, {
-  serverApi: {
-    version: ServerApiVersion.v1,
-    strict: true,
-    deprecationErrors: true,
-  },
+  serverApi: { version: ServerApiVersion.v1, strict: true, deprecationErrors: true },
 });
 
-let cachedDb: Db | null = null;
+let db: any = null;
 
 async function getDb() {
-  if (cachedDb) return cachedDb;
+  if (db) return db;
   await client.connect();
-  const db = client.db("paws-claws");
-  cachedDb = db;
+  db = client.db("paws-claws");
   return db;
 }
 
@@ -314,15 +301,16 @@ app.get("/", (req: Request, res: Response) => {
 
 app.get("/pets", async (req: Request, res: Response) => {
   try {
-    const db = await getDb();
-    const { search, category, sort, page = 1, limit = 6 } = req.query;
-    const pageNum = parseInt(page as string);
-    const limitNum = parseInt(limit as string);
+    const database = await getDb();
+    const { search, category, sort, page = "1", limit = "6" } = req.query;
+    
+    const pageNum = parseInt(page as string) || 1;
+    const limitNum = parseInt(limit as string) || 6;
 
     let query: any = { status: "available" };
     if (search) {
-      const searchRegex = new RegExp(search as string, "i");
-      query.$or = [{ name: searchRegex }, { breed: searchRegex }, { location: searchRegex }];
+      const regex = new RegExp(search as string, "i");
+      query.$or = [{ name: regex }, { breed: regex }, { location: regex }];
     }
     if (category) query.category = category;
 
@@ -330,8 +318,8 @@ app.get("/pets", async (req: Request, res: Response) => {
     if (sort === "newest") sortOption.createdAt = -1;
     else if (sort === "oldest") sortOption.createdAt = 1;
 
-    const total = await db.collection("pets").countDocuments(query);
-    const pets = await db.collection("pets")
+    const total = await database.collection("pets").countDocuments(query);
+    const pets = await database.collection("pets")
       .find(query)
       .sort(sortOption)
       .skip((pageNum - 1) * limitNum)
@@ -344,89 +332,62 @@ app.get("/pets", async (req: Request, res: Response) => {
   }
 });
 
-app.get("/featuredPets", async (req: Request, res: Response) => {
-  try {
-    const db = await getDb();
-    const result = await db.collection("pets").find({ status: "available" }).limit(3).toArray();
-    res.json(result);
-  } catch (error) {
-    res.status(500).json({ message: "Failed to fetch featured pets" });
-  }
-});
-
 app.get("/pets/:id", async (req: Request, res: Response) => {
   try {
-    const db = await getDb();
-    const { id } = req.params;
-    if (!ObjectId.isValid(id)) return res.status(400).json({ message: "Invalid ID format" });
-    const result = await db.collection("pets").findOne({ _id: new ObjectId(id) });
-    if (!result) return res.status(404).json({ message: "Pet not found" });
-    res.json(result);
+    const database = await getDb();
+    const id = req.params.id as string;
+    
+    if (!ObjectId.isValid(id)) return res.status(400).json({ message: "Invalid ID" });
+    
+    const result = await database.collection("pets").findOne({ _id: new ObjectId(id) });
+    result ? res.json(result) : res.status(404).json({ message: "Not found" });
   } catch (error) {
-    res.status(500).json({ message: "Internal server error" });
-  }
-});
-
-app.get("/adoptions", async (req: Request, res: Response) => {
-  try {
-    const db = await getDb();
-    const result = await db.collection("adoptions").find().toArray();
-    res.json(result);
-  } catch (error) {
-    res.status(500).json({ message: "Failed to fetch adoptions" });
+    res.status(500).json({ message: "Error" });
   }
 });
 
 app.post("/adoptions", async (req: Request, res: Response) => {
   try {
-    const db = await getDb();
-    const result = await db.collection("adoptions").insertOne({
+    const database = await getDb();
+    const result = await database.collection("adoptions").insertOne({
       ...req.body,
       status: "pending",
       createdAt: new Date(),
     });
     res.status(201).json(result);
   } catch (error) {
-    res.status(500).json({ message: "Failed to submit request" });
-  }
-});
-
-app.get("/admin/adoption-stats", async (req: Request, res: Response) => {
-  try {
-    const db = await getDb();
-    const stats = await db.collection("adoptions").aggregate([
-      { $group: { _id: { $dateToString: { format: "%Y-%m", date: "$createdAt" } }, count: { $sum: 1 } } },
-      { $sort: { _id: 1 } }
-    ]).toArray();
-    res.json(stats);
-  } catch (error) {
-    res.status(500).json({ message: "Failed to fetch stats" });
-  }
-});
-
-app.get("/admin/all-pets", async (req: Request, res: Response) => {
-  try {
-    const db = await getDb();
-    const result = await db.collection("pets").find().toArray();
-    res.json(result);
-  } catch (error) {
-    res.status(500).json({ message: "Failed to fetch pets" });
+    res.status(500).json({ message: "Failed" });
   }
 });
 
 app.delete("/pets/:id", async (req: Request, res: Response) => {
   try {
-    const db = await getDb();
-    const { id } = req.params;
-    if (!ObjectId.isValid(id)) return res.status(400).json({ message: "Invalid ID format" });
-    const result = await db.collection("pets").deleteOne({ _id: new ObjectId(id) });
+    const database = await getDb();
+    const id = req.params.id as string;
+    
+    if (!ObjectId.isValid(id)) return res.status(400).json({ message: "Invalid ID" });
+    
+    const result = await database.collection("pets").deleteOne({ _id: new ObjectId(id) });
     result.deletedCount === 1 
-      ? res.json({ message: "Pet deleted successfully" }) 
-      : res.status(404).json({ message: "Pet not found" });
+      ? res.json({ message: "Success" }) 
+      : res.status(404).json({ message: "Not found" });
   } catch (error) {
-    res.status(500).json({ message: "Failed to delete pet" });
+    res.status(500).json({ message: "Failed" });
   }
 });
 
-// Vercel-এর জন্য এক্সপোর্ট (গুরুত্বপূর্ণ)
+// Admin stats
+app.get("/admin/adoption-stats", async (req: Request, res: Response) => {
+  try {
+    const database = await getDb();
+    const stats = await database.collection("adoptions").aggregate([
+      { $group: { _id: { $dateToString: { format: "%Y-%m", date: "$createdAt" } }, count: { $sum: 1 } } },
+      { $sort: { _id: 1 } }
+    ]).toArray();
+    res.json(stats);
+  } catch (error) {
+    res.status(500).json({ message: "Failed" });
+  }
+});
+
 export default app;
