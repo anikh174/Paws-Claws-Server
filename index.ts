@@ -273,17 +273,16 @@ dotenv.config();
 
 const app = express();
 
-// CORS configuration
+// Middleware
 app.use(
   corsMiddleware({
     origin: ["http://localhost:3000", "https://paws-claws-beta.vercel.app"],
     credentials: true,
   })
 );
-
 app.use(express.json());
 
-// MongoDB connection setup
+// MongoDB connection
 const uri = process.env.MONGODB_URI as string;
 if (!uri) {
   throw new Error("MONGODB_URI is not defined in .env file");
@@ -297,13 +296,10 @@ const client = new MongoClient(uri, {
   },
 });
 
-// Cache the database connection
 let cachedDb: Db | null = null;
 
 async function getDb() {
-  if (cachedDb) {
-    return cachedDb;
-  }
+  if (cachedDb) return cachedDb;
   await client.connect();
   const db = client.db("paws-claws");
   cachedDb = db;
@@ -312,22 +308,20 @@ async function getDb() {
 
 // --- API Endpoints ---
 
-// 1. Root Endpoint
+// 1. Root
 app.get("/", (req: Request, res: Response) => {
   res.send("Paws & Claws Server is Running!");
 });
 
-// 2. Get all pets with filter/search
+// 2. Get all pets
 app.get("/pets", async (req: Request, res: Response) => {
   try {
     const db = await getDb();
-    const petsCollection = db.collection("pets");
     const { search, category, sort, page = 1, limit = 6 } = req.query;
     const pageNum = parseInt(page as string);
     const limitNum = parseInt(limit as string);
 
     let query: any = { status: "available" };
-
     if (search) {
       const searchRegex = new RegExp(search as string, "i");
       query.$or = [{ name: searchRegex }, { breed: searchRegex }, { location: searchRegex }];
@@ -338,15 +332,15 @@ app.get("/pets", async (req: Request, res: Response) => {
     if (sort === "newest") sortOption.createdAt = -1;
     else if (sort === "oldest") sortOption.createdAt = 1;
 
-    const total = await petsCollection.countDocuments(query);
-    const pets = await petsCollection
+    const total = await db.collection("pets").countDocuments(query);
+    const pets = await db.collection("pets")
       .find(query)
       .sort(sortOption)
       .skip((pageNum - 1) * limitNum)
       .limit(limitNum)
       .toArray();
 
-    res.send({ pets, totalPages: Math.ceil(total / limitNum) });
+    res.json({ pets, totalPages: Math.ceil(total / limitNum) });
   } catch (error) {
     res.status(500).json({ message: "Internal server error" });
   }
@@ -357,13 +351,13 @@ app.get("/featuredPets", async (req: Request, res: Response) => {
   try {
     const db = await getDb();
     const result = await db.collection("pets").find({ status: "available" }).limit(3).toArray();
-    res.send(result);
+    res.json(result);
   } catch (error) {
     res.status(500).json({ message: "Failed to fetch featured pets" });
   }
 });
 
-// 4. Get single pet details
+// 4. Single pet details
 app.get("/pets/:id", async (req: Request, res: Response) => {
   try {
     const db = await getDb();
@@ -371,24 +365,24 @@ app.get("/pets/:id", async (req: Request, res: Response) => {
     if (!ObjectId.isValid(id)) return res.status(400).json({ message: "Invalid ID format" });
     const result = await db.collection("pets").findOne({ _id: new ObjectId(id) });
     if (!result) return res.status(404).json({ message: "Pet not found" });
-    res.send(result);
+    res.json(result);
   } catch (error) {
     res.status(500).json({ message: "Internal server error" });
   }
 });
 
-// 5. Get all adoptions
+// 5. Adoptions (GET)
 app.get("/adoptions", async (req: Request, res: Response) => {
   try {
     const db = await getDb();
     const result = await db.collection("adoptions").find().toArray();
-    res.send(result);
+    res.json(result);
   } catch (error) {
     res.status(500).json({ message: "Failed to fetch adoptions" });
   }
 });
 
-// 6. Submit adoption request
+// 6. Submit adoption
 app.post("/adoptions", async (req: Request, res: Response) => {
   try {
     const db = await getDb();
@@ -417,18 +411,18 @@ app.get("/admin/adoption-stats", async (req: Request, res: Response) => {
   }
 });
 
-// 8. Get all pets (Admin)
+// 8. Admin Get all pets
 app.get("/admin/all-pets", async (req: Request, res: Response) => {
   try {
     const db = await getDb();
     const result = await db.collection("pets").find().toArray();
-    res.send(result);
+    res.json(result);
   } catch (error) {
     res.status(500).json({ message: "Failed to fetch pets" });
   }
 });
 
-// 9. Delete a pet
+// 9. Delete pet
 app.delete("/pets/:id", async (req: Request, res: Response) => {
   try {
     const db = await getDb();
@@ -443,4 +437,5 @@ app.delete("/pets/:id", async (req: Request, res: Response) => {
   }
 });
 
-module.exports = app;
+// Vercel-এর জন্য এক্সপোর্ট
+export default app;
