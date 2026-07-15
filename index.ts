@@ -80,6 +80,20 @@ app.get("/pets/:id", async (req: Request, res: Response) => {
   }
 });
 
+app.get("/featuredPets", async (req: Request, res: Response) => {
+  try {
+    const database = await getDb();
+    // এখানে আমরা 'available' স্ট্যাটাস থাকা পেটগুলো থেকে লিমিট ৩টি নিচ্ছি
+    const pets = await database.collection("pets")
+      .find({ status: "available" })
+      .limit(3)
+      .toArray();
+    res.json(pets);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to fetch featured pets" });
+  }
+});
+
 app.post("/adoptions", async (req: Request, res: Response) => {
   try {
     const database = await getDb();
