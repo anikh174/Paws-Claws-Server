@@ -267,7 +267,7 @@
 import express, { Request, Response } from "express";
 import dotenv from "dotenv";
 import corsMiddleware from "cors";
-import { MongoClient, ServerApiVersion, ObjectId } from "mongodb";
+import { MongoClient, ServerApiVersion, ObjectId, Db } from "mongodb";
 
 dotenv.config();
 
@@ -297,12 +297,17 @@ const client = new MongoClient(uri, {
   },
 });
 
-// Helper function to get DB connection
+// Cache the database connection
+let cachedDb: Db | null = null;
+
 async function getDb() {
-  if (!client.topology || !client.topology.isConnected()) {
-    await client.connect();
+  if (cachedDb) {
+    return cachedDb;
   }
-  return client.db("paws-claws");
+  await client.connect();
+  const db = client.db("paws-claws");
+  cachedDb = db;
+  return db;
 }
 
 // --- API Endpoints ---
@@ -438,5 +443,4 @@ app.delete("/pets/:id", async (req: Request, res: Response) => {
   }
 });
 
-// Vercel-এর জন্য এটি এক্সপোর্ট করা জরুরি
 module.exports = app;
