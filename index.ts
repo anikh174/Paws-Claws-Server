@@ -308,12 +308,10 @@ async function getDb() {
 
 // --- API Endpoints ---
 
-// 1. Root
 app.get("/", (req: Request, res: Response) => {
   res.send("Paws & Claws Server is Running!");
 });
 
-// 2. Get all pets
 app.get("/pets", async (req: Request, res: Response) => {
   try {
     const db = await getDb();
@@ -346,7 +344,6 @@ app.get("/pets", async (req: Request, res: Response) => {
   }
 });
 
-// 3. Featured Pets
 app.get("/featuredPets", async (req: Request, res: Response) => {
   try {
     const db = await getDb();
@@ -357,7 +354,6 @@ app.get("/featuredPets", async (req: Request, res: Response) => {
   }
 });
 
-// 4. Single pet details
 app.get("/pets/:id", async (req: Request, res: Response) => {
   try {
     const db = await getDb();
@@ -371,7 +367,6 @@ app.get("/pets/:id", async (req: Request, res: Response) => {
   }
 });
 
-// 5. Adoptions (GET)
 app.get("/adoptions", async (req: Request, res: Response) => {
   try {
     const db = await getDb();
@@ -382,7 +377,6 @@ app.get("/adoptions", async (req: Request, res: Response) => {
   }
 });
 
-// 6. Submit adoption
 app.post("/adoptions", async (req: Request, res: Response) => {
   try {
     const db = await getDb();
@@ -397,7 +391,6 @@ app.post("/adoptions", async (req: Request, res: Response) => {
   }
 });
 
-// 7. Admin Stats
 app.get("/admin/adoption-stats", async (req: Request, res: Response) => {
   try {
     const db = await getDb();
@@ -411,7 +404,6 @@ app.get("/admin/adoption-stats", async (req: Request, res: Response) => {
   }
 });
 
-// 8. Admin Get all pets
 app.get("/admin/all-pets", async (req: Request, res: Response) => {
   try {
     const db = await getDb();
@@ -422,7 +414,6 @@ app.get("/admin/all-pets", async (req: Request, res: Response) => {
   }
 });
 
-// 9. Delete pet
 app.delete("/pets/:id", async (req: Request, res: Response) => {
   try {
     const db = await getDb();
@@ -437,5 +428,5 @@ app.delete("/pets/:id", async (req: Request, res: Response) => {
   }
 });
 
-// Vercel-এর জন্য এক্সপোর্ট
+// Vercel-এর জন্য এক্সপোর্ট (গুরুত্বপূর্ণ)
 export default app;

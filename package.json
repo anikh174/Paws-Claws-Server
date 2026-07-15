@@ -1,16 +1,11 @@
 {
   "name": "paws-claws-server",
   "version": "1.0.0",
-  "description": "Paws & Claws Backend Server",
-  "main": "index.ts",
+  "main": "api/index.js",
   "scripts": {
-    "dev": "tsx watch index.ts",
     "build": "tsc",
-    "start": "node dist/index.js"
+    "start": "node api/index.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
@@ -21,12 +16,7 @@
   "devDependencies": {
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
-    "@types/mongodb": "^4.0.6",
     "@types/node": "^26.1.1",
-    "@types/react": "^19.2.17",
-    "@types/react-dom": "^19.2.3",
-    "ts-node": "^10.9.2",
-    "tsx": "^4.23.1",
-    "typescript": "^7.0.2"
+    "typescript": "^5.0.0"
   }
 }
